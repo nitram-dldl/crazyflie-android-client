@@ -356,10 +356,10 @@ public class MainPresenter {
                     mainActivity.showToastie("Recovering...");
                 }
             } else {
-                boolean arm = !mArmed;
-                Log.i(LOG_TAG, "Sending arming request: " + arm);
-                mCrazyflie.sendPacket(new ArmingPacket(arm));
-                mainActivity.showToastie(arm ? "Arming..." : "Disarming...");
+                mArmed = !mArmed;
+                Log.i(LOG_TAG, "Sending arming request: " + mArmed);
+                mCrazyflie.sendPacket(new ArmingPacket(mArmed));
+                mainActivity.showToastie(mArmed ? "Arming..." : "Disarming...");
             }
         }
     }

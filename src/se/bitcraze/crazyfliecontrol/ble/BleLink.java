@@ -62,6 +62,7 @@ import android.os.Handler;
 import androidx.annotation.RequiresApi;
 import se.bitcraze.crazyflie.lib.crtp.CrtpDriver;
 import se.bitcraze.crazyflie.lib.crtp.CrtpPacket;
+import se.bitcraze.crazyflie.lib.crtp.CrtpPort;
 
 @SuppressLint("NewApi")
 public class BleLink extends CrtpDriver {
@@ -385,13 +386,18 @@ public class BleLink extends CrtpDriver {
     int ctr = 0;
     @Override
     public void sendPacket(CrtpPacket packet) {
-        // FIXME: Skipping half of the commander packets to avoid queuing up packets on slow BLE
-        if (!mWriteWithAnswer && ((ctr++)%2 == 0)) {
+        boolean isPlatformPacket = packet.getHeader().getPort() == CrtpPort.PLATFORM;
+
+        // Skip half of the commander packets to avoid queuing up packets on slow BLE.
+        // Never skip platform packets (arming, crash recovery) — they are critical.
+        if (!mWriteWithAnswer && !isPlatformPacket && ((ctr++)%2 == 0)) {
             return;
         }
+        // Force write-with-response for platform packets to guarantee delivery
+        boolean forceWriteWithResponse = isPlatformPacket && !mWriteWithAnswer;
         if (packet.getPayload().length <= 20) {
             //send normal CRTP packet
-            mContext.runOnUiThread(new SendBlePacket(packet));
+            mContext.runOnUiThread(new SendBlePacket(packet, forceWriteWithResponse));
         } else {
             //split and send two CRTPUP packets
             sendSplitPacket(packet);
@@ -462,10 +468,12 @@ public class BleLink extends CrtpDriver {
     private class SendBlePacket implements Runnable {
         byte[] ba;
         BluetoothGattCharacteristic characteristic;
+        boolean forceWriteWithResponse;
 
         public SendBlePacket(byte[] ba, BluetoothGattCharacteristic characteristic) {
             this.ba = ba;
             this.characteristic = characteristic;
+            this.forceWriteWithResponse = false;
         }
 
         /**
@@ -477,13 +485,21 @@ public class BleLink extends CrtpDriver {
             this(packet.toByteArray(), mCrtpChar);
         }
 
+        /**
+         * Sends packet with CRTP characteristic, optionally forcing write-with-response
+         */
+        public SendBlePacket(CrtpPacket packet, boolean forceWriteWithResponse){
+            this(packet.toByteArray(), mCrtpChar);
+            this.forceWriteWithResponse = forceWriteWithResponse;
+        }
+
         public void run() {
             if (characteristic == null) {
                 mLogger.debug("characteristic is null!!");
                 return;
             }
             if(mConnected && mWritten) {
-                if (mWriteWithAnswer) {
+                if (mWriteWithAnswer || forceWriteWithResponse) {
                     characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
                     mWritten = false;
                 } else {

@@ -53,6 +53,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
@@ -122,6 +123,8 @@ public class MainActivity extends Activity {
     private ImageButton mHeadlightButton;
     private ImageButton mBuzzerSoundButton;
     private Button mArmButton;
+    private boolean mIsArmed = false;
+    private boolean mIsCrashed = false;
     private File mCacheDir;
 
     private TextView mTextView_battery;
@@ -172,6 +175,31 @@ public class MainActivity extends Activity {
         mHeadlightButton = (ImageButton) findViewById(R.id.button_headLight);
         mBuzzerSoundButton = (ImageButton) findViewById(R.id.button_buzzerSound);
         mArmButton = (Button) findViewById(R.id.button_arm);
+        mArmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mIsArmed || mIsCrashed) {
+                    if (mPresenter != null) {
+                        mPresenter.toggleArming();
+                        setArmButtonArmed(false);
+                    }
+                } else {
+                    showToastie(getString(R.string.button_arm_long_press_hint));
+                }
+            }
+        });
+        mArmButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (!mIsArmed && !mIsCrashed) {
+                    if (mPresenter != null) {
+                        mPresenter.toggleArming();
+                        setArmButtonArmed(true);
+                    }
+                }
+                return true;
+            }
+        });
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(this.getPackageName()+".USB_PERMISSION");
@@ -718,12 +746,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    public void toggleArming(View view) {
-        if (mPresenter != null) {
-            mPresenter.toggleArming();
-        }
-    }
-
     public MainPresenter getPresenter() {
         return mPresenter;
     }
@@ -857,26 +879,28 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                mIsArmed = isArmed;
+                mIsCrashed = crashed;
                 if (crashed) {
-                    mArmButton.setText(R.string.button_recover_label);
+                    mArmButton.setText(R.string.button_arm_recover);
                     if (tumbled) {
-                        mArmButton.setBackgroundColor(Color.LTGRAY);
+                        mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#9E9E9E")));
                         mArmButton.setEnabled(false);
                     } else {
-                        mArmButton.setBackgroundColor(Color.RED);
+                        mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F44336")));
                         mArmButton.setEnabled(true);
                     }
                 } else if (isArmed) {
-                    mArmButton.setText(R.string.button_disarm_label);
-                    mArmButton.setBackgroundColor(Color.RED);
+                    mArmButton.setText(R.string.button_arm_armed);
+                    mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
                     mArmButton.setEnabled(true);
                 } else {
-                    mArmButton.setText(R.string.button_arm_label);
+                    mArmButton.setText(R.string.button_arm_disarmed);
                     if (canArm) {
-                        mArmButton.setBackgroundColor(Color.GREEN);
+                        mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F44336")));
                         mArmButton.setEnabled(true);
                     } else {
-                        mArmButton.setBackgroundColor(Color.LTGRAY);
+                        mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#9E9E9E")));
                         mArmButton.setEnabled(false);
                     }
                 }
@@ -884,11 +908,23 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void setArmButtonArmed(boolean armed) {
+        mIsArmed = armed;
+        if (armed) {
+            mArmButton.setText(R.string.button_arm_armed);
+            mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
+        } else {
+            mIsArmed = false;
+            mArmButton.setText(R.string.button_arm_disarmed);
+            mArmButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F44336")));
+        }
+        mArmButton.setEnabled(true);
+    }
+
     public void disableButtonsAndResetBatteryLevel() {
         setRingEffectButtonEnablement(false);
         setHeadlightButtonEnablement(false);
         setBuzzerSoundButtonEnablement(false);
-        setArmButtonEnablement(false);
         setBatteryLevel(-1.0f);
     }
 }

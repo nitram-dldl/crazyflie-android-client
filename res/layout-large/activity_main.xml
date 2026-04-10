@@ -143,31 +143,35 @@
         android:onClick="playBuzzerSound"
         android:contentDescription="@string/button_buzzer_contentDescription"/>
 
+    <Button
+        android:id="@+id/button_arm"
+        android:layout_width="200dp"
+        android:layout_height="40dp"
+        android:layout_below="@+id/button_buzzerSound"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:text="@string/button_arm_disarmed"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:visibility="visible"
+        android:backgroundTint="#F44336"
+        android:contentDescription="@string/button_arm_contentDescription"/>
+
     <se.bitcraze.crazyfliecontrol2.FlightDataView
         android:id="@+id/flightdataview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:layout_centerHorizontal="true"
-        android:layout_below="@+id/button_buzzerSound" />
-
-    <Button
-        android:id="@+id/button_arm"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/flightdataview"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="5dp"
-        android:onClick="toggleArming"
-        android:text="@string/button_arm_label"
-        android:contentDescription="@string/button_arm_contentDescription"/>
+        android:layout_below="@+id/button_arm" />
 
     <ScrollView
         android:id="@+id/console_scrollView"
         android:layout_width="180dp"
         android:layout_height="200dp"
         android:layout_centerHorizontal="true"
-        android:layout_below="@+id/button_arm"
+        android:layout_below="@+id/flightdataview"
         android:layout_marginTop="10dp"
         android:scrollbars="vertical"
         android:fillViewport="true">
