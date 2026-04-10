@@ -79,6 +79,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -120,6 +121,7 @@ public class MainActivity extends Activity {
     private ImageButton mRingEffectButton;
     private ImageButton mHeadlightButton;
     private ImageButton mBuzzerSoundButton;
+    private Button mArmButton;
     private File mCacheDir;
 
     private TextView mTextView_battery;
@@ -169,6 +171,7 @@ public class MainActivity extends Activity {
         mRingEffectButton = (ImageButton) findViewById(R.id.button_ledRing);
         mHeadlightButton = (ImageButton) findViewById(R.id.button_headLight);
         mBuzzerSoundButton = (ImageButton) findViewById(R.id.button_buzzerSound);
+        mArmButton = (Button) findViewById(R.id.button_arm);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(this.getPackageName()+".USB_PERMISSION");
@@ -715,6 +718,12 @@ public class MainActivity extends Activity {
         }
     }
 
+    public void toggleArming(View view) {
+        if (mPresenter != null) {
+            mPresenter.toggleArming();
+        }
+    }
+
     public MainPresenter getPresenter() {
         return mPresenter;
     }
@@ -826,6 +835,15 @@ public class MainActivity extends Activity {
         });
     }
 
+    public void setArmButtonEnablement(final boolean enabled) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mArmButton.setEnabled(enabled);
+            }
+        });
+    }
+
     public void toggleHeadlightButtonColor(final boolean toggle) {
         runOnUiThread(new Runnable() {
             @Override
@@ -835,10 +853,42 @@ public class MainActivity extends Activity {
         });
     }
 
+    public void toggleArmButtonState(final boolean canArm, final boolean isArmed, final boolean crashed, final boolean tumbled) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (crashed) {
+                    mArmButton.setText(R.string.button_recover_label);
+                    if (tumbled) {
+                        mArmButton.setBackgroundColor(Color.LTGRAY);
+                        mArmButton.setEnabled(false);
+                    } else {
+                        mArmButton.setBackgroundColor(Color.RED);
+                        mArmButton.setEnabled(true);
+                    }
+                } else if (isArmed) {
+                    mArmButton.setText(R.string.button_disarm_label);
+                    mArmButton.setBackgroundColor(Color.RED);
+                    mArmButton.setEnabled(true);
+                } else {
+                    mArmButton.setText(R.string.button_arm_label);
+                    if (canArm) {
+                        mArmButton.setBackgroundColor(Color.GREEN);
+                        mArmButton.setEnabled(true);
+                    } else {
+                        mArmButton.setBackgroundColor(Color.LTGRAY);
+                        mArmButton.setEnabled(false);
+                    }
+                }
+            }
+        });
+    }
+
     public void disableButtonsAndResetBatteryLevel() {
         setRingEffectButtonEnablement(false);
         setHeadlightButtonEnablement(false);
         setBuzzerSoundButtonEnablement(false);
+        setArmButtonEnablement(false);
         setBatteryLevel(-1.0f);
     }
 }

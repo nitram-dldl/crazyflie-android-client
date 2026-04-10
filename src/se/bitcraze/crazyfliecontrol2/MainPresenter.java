@@ -11,6 +11,8 @@ import se.bitcraze.crazyflie.lib.crazyflie.Crazyflie;
 import se.bitcraze.crazyflie.lib.crazyradio.ConnectionData;
 import se.bitcraze.crazyflie.lib.crazyradio.RadioDriver;
 import se.bitcraze.crazyflie.lib.crtp.CommanderPacket;
+import se.bitcraze.crazyflie.lib.crtp.ArmingPacket;
+import se.bitcraze.crazyflie.lib.crtp.CrashRecoveryPacket;
 import se.bitcraze.crazyflie.lib.crtp.CrtpDriver;
 import se.bitcraze.crazyflie.lib.crtp.CrtpPacket;
 import se.bitcraze.crazyflie.lib.crtp.ZDistancePacket;
@@ -49,6 +51,9 @@ public class MainPresenter {
     private int mCpuFlash = 0;
     private boolean isZrangerAvailable = false;
     private boolean heightHold = false;
+    private boolean mArmed = false;
+    private boolean mCrashed = false;
+    private boolean mTumbled = false;
 
     private Thread mSendJoystickDataThread;
     private ConsoleListener mConsoleListener;
@@ -91,6 +96,7 @@ public class MainPresenter {
                     checkForBuzzerDeck();
                     checkForNoOfRingEffects();
                     checkForZRanger();
+                    mainActivity.setArmButtonEnablement(true);
                 }
             }
             mLogg = mCrazyflie.getLogg();
@@ -339,6 +345,25 @@ public class MainPresenter {
         }
     }
 
+    public void toggleArming() {
+        if (mCrazyflie != null && mCrazyflie.isConnected()) {
+            if (mCrashed) {
+                if (mTumbled) {
+                    mainActivity.showToastie("Crashed, flip over to recover");
+                } else {
+                    Log.i(LOG_TAG, "Sending crash recovery request");
+                    mCrazyflie.sendPacket(new CrashRecoveryPacket());
+                    mainActivity.showToastie("Recovering...");
+                }
+            } else {
+                boolean arm = !mArmed;
+                Log.i(LOG_TAG, "Sending arming request: " + arm);
+                mCrazyflie.sendPacket(new ArmingPacket(arm));
+                mainActivity.showToastie(arm ? "Arming..." : "Disarming...");
+            }
+        }
+    }
+
     public Crazyflie getCrazyflie(){
         return mCrazyflie;
     }
@@ -349,19 +374,32 @@ public class MainPresenter {
             super.logDataReceived(logConfig, data, timestamp);
 
             if ("Standard".equals(logConfig.getName())) {
-                final float battery = (float) data.get("pm.vbat");
-                mainActivity.setBatteryLevel(battery);
+                if (data.containsKey("pm.vbat")) {
+                    final float battery = (float) data.get("pm.vbat");
+                    mainActivity.setBatteryLevel(battery);
+                }
+                if (data.containsKey("supervisor.info")) {
+                    int info = data.get("supervisor.info").intValue();
+                    mArmed = (info & 0x02) != 0;
+                    boolean canArm = (info & 0x01) != 0;
+                    mCrashed = (info & 0x80) != 0;
+                    mTumbled = (info & 0x20) != 0;
+                    mainActivity.toggleArmButtonState(canArm, mArmed, mCrashed, mTumbled);
+                }
             }
             for (Map.Entry<String, Number> entry : data.entrySet()) {
-                Log.d(LOG_TAG, "\t Name: " + entry.getKey() + ", data: " + entry.getValue());
+                // Log.d(LOG_TAG, "\t Name: " + entry.getKey() + ", data: " + entry.getValue());
             }
         }
 
     };
 
     private LogConfig createDefaultLogConfig() {
-        LogConfig logConfigStandard = new LogConfig("Standard", 1000);
-        logConfigStandard.addVariable("pm.vbat", VariableType.FLOAT);
+        LogConfig logConfigStandard = new LogConfig("Standard", 100);
+        logConfigStandard.addVariable("pm.vbat");
+        if (mLogToc != null && mLogToc.getElementByCompleteName("supervisor.info") != null) {
+            logConfigStandard.addVariable("supervisor.info");
+        }
         return logConfigStandard;
     }
 

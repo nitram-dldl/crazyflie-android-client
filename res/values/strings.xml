@@ -21,6 +21,10 @@
     <string name="button_ledring_contentDescription">LED ring button</string>
     <string name="button_headlight_contentDescription">Headlight button</string>
     <string name="button_buzzer_contentDescription">Buzzer button</string>
+    <string name="button_arm_contentDescription">Arm button</string>
+    <string name="button_arm_label">Arm</string>
+    <string name="button_disarm_label">Disarm</string>
+    <string name="button_recover_label">Recover</string>
 
     <!-- Connection settings -->
     <string name="preferences_radio_title">Connection settings</string>

@@ -151,13 +151,24 @@
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/button_buzzerSound" />
 
+    <Button
+        android:id="@+id/button_arm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/flightdataview"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="5dp"
+        android:onClick="toggleArming"
+        android:text="@string/button_arm_label"
+        android:contentDescription="@string/button_arm_contentDescription"/>
+
     <ScrollView
         android:id="@+id/console_scrollView"
         android:layout_width="180dp"
         android:layout_height="200dp"
         android:layout_centerHorizontal="true"
-        android:layout_below="@+id/flightdataview"
-        android:layout_marginTop="25dp"
+        android:layout_below="@+id/button_arm"
+        android:layout_marginTop="10dp"
         android:background="@drawable/stroke_bg"
         android:scrollbars="vertical"
         android:fillViewport="true">
