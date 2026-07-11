@@ -8,7 +8,7 @@
 
 ## Mise à jour du firmware
 
-La mise à jour du firmware depuis Android est **désactivée** dans ce fork (fonction cassée en amont, issues #102 et billet Bitcraze d'avril 2025). Utiliser le client Crazyflie sur ordinateur pour mettre à jour ou restaurer le drone.
+La mise à jour du firmware depuis Android est cassée en amont (issue #102 et billet Bitcraze d'avril 2025) et **n'est pas encore désactivée dans le code de ce fork**. Ne pas l'utiliser. En attendant la correction planifiée sur `safety/disable-mobile-firmware-update`, utiliser le client Crazyflie sur ordinateur pour mettre à jour ou restaurer le drone.
 
 ## Signalement
 

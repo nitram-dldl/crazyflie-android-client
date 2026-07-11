@@ -6,7 +6,8 @@
 |---|---|---|
 | `BLUETOOTH` | `maxSdkVersion 30` | correct |
 | `BLUETOOTH_ADMIN` | `maxSdkVersion 30` | correct |
-| `ACCESS_COARSE_LOCATION` | `maxSdkVersion 30` | correct |
+| `ACCESS_COARSE_LOCATION` | `maxSdkVersion 30` | insuffisant sur Android 10–11 |
+| `ACCESS_FINE_LOCATION` | absente | à ajouter avec `maxSdkVersion 30` pour Android 10–11 |
 | `BLUETOOTH_SCAN` (`neverForLocation`) | — | correct |
 | `BLUETOOTH_CONNECT` | — | correct |
 | `INTERNET` | — | à justifier (firmware downloader ?) |
@@ -18,7 +19,7 @@
 
 ## Flux d'exécution (runtime)
 
-Problèmes confirmés : chute entre les `case` de `onRequestPermissionsResult()` (`MainActivity.java:364-401`) et dialogue GPS imposé après `BLUETOOTH_CONNECT` sur Android 12+ (`checkLocationSettings()`).
+Problèmes confirmés : chute entre les `case` de `onRequestPermissionsResult()` (`MainActivity.java:364-401`), dialogue GPS imposé après `BLUETOOTH_CONNECT` sur Android 12+ (`checkLocationSettings()`) et absence de `ACCESS_FINE_LOCATION` requise pour recevoir les résultats de scan sur Android 10–11 avec cette cible SDK.
 
 ## Scénarios de test (Phase 2)
 

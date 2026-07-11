@@ -1,12 +1,19 @@
 # Plan de maintenance — Crazyflie Android Client
 
-> **Projet :** remise à niveau de l’application Android officielle Crazyflie  
-> **Matériel cible principal :** Crazyflie 2.0  
-> **Téléphone cible principal :** Android 16  
-> **Environnement de développement :** Zorin OS + VS Code  
-> **Date du plan :** 11 juillet 2026 (révisé le même jour après vérification du code de `master`, commit `d629c79`)  
-> **Dépôt amont :** https://github.com/bitcraze/crazyflie-android-client  
-> **Fork de travail :** https://github.com/nitram-dldl/crazyflie-android-client  
+> **Projet :** remise à niveau de l’application Android officielle Crazyflie
+>
+> **Matériel cible principal :** Crazyflie 2.0
+>
+> **Téléphone cible principal :** Android 16
+>
+> **Environnement de développement :** Zorin OS + VS Code
+>
+> **Date du plan :** 11 juillet 2026 (révisé le même jour après vérification du code de `master`, commit `d629c79`)
+>
+> **Dépôt amont :** https://github.com/bitcraze/crazyflie-android-client
+>
+> **Fork de travail :** https://github.com/nitram-dldl/crazyflie-android-client
+>
 > **Licence :** GPL-2.0-or-later
 
 ---
@@ -149,7 +156,7 @@ Cela évite également de rendre inutilement accessible un récepteur privé.
 
 ### 5.2 Compatibilité avec Android inférieur à 13
 
-Le code actuel appelle directement une surcharge récente de `registerReceiver()` et annote `onCreate()` avec `@RequiresApi(TIRAMISU)` (`MainActivity.java:129`) alors que le projet annonce `minSdkVersion 26`. Confirmé sur `master`.
+La surcharge à trois arguments de `registerReceiver()` existe depuis l'API 26, mais le code actuel emploie `RECEIVER_EXPORTED` (introduit en API 33) sans garde de version et annote tout `onCreate()` avec `@RequiresApi(TIRAMISU)` (`MainActivity.java:129`) alors que le projet annonce `minSdkVersion 26`. Confirmé sur `master`.
 
 Il faut :
 
@@ -168,6 +175,7 @@ Sur Android 12 et versions suivantes :
 
 Le flux actuel doit être audité, notamment :
 
+- `ACCESS_FINE_LOCATION` pour recevoir les résultats de scan sur Android 10–11, bornée à `maxSdkVersion="30"` ;
 - demande des deux permissions ;
 - refus temporaire ;
 - refus permanent ;
@@ -330,12 +338,13 @@ device
 
 ## 7. Création du fork et branches Git
 
-**État au 11 juillet 2026 :** le dépôt est déjà cloné dans `~/Documents/projets-annexes/CrazyFlie/crazyflie-android-client` avec le remote `upstream` pointant vers Bitcraze. Il reste à créer le fork GitHub (compte `nitram-dldl`) et à déclarer `origin` :
+**État au 11 juillet 2026 :** le dépôt et le fork GitHub du compte `nitram-dldl` sont configurés. `origin` pointe vers le fork et `upstream` vers Bitcraze. `master`, `maintenance/docs`, `fix/android-receiver-registration` et `fix/android-bluetooth-permissions` existent sur `origin`.
+
+Vérification :
 
 ```bash
-gh repo fork bitcraze/crazyflie-android-client --clone=false
-git remote add origin git@github.com:nitram-dldl/crazyflie-android-client.git
-git push -u origin master
+git remote -v
+git branch -a -vv
 ```
 
 Organisation des branches retenue :
@@ -387,10 +396,10 @@ Conserver une trace exacte du comportement avant modification.
 
 ### Tâches
 
-- [ ] cloner la branche `master` actuelle ;
-- [ ] noter le hash du commit testé ;
-- [ ] lancer la compilation sans modifier le code ;
-- [ ] enregistrer toutes les erreurs ;
+- [x] cloner la branche `master` actuelle ;
+- [x] noter le hash du commit testé ;
+- [x] lancer la compilation sans modifier le code ;
+- [x] enregistrer toutes les erreurs ;
 - [ ] installer l’APK sur Android 16 ;
 - [ ] capturer les logs de démarrage ;
 - [ ] vérifier si l’application démarre ;
@@ -398,7 +407,7 @@ Conserver une trace exacte du comportement avant modification.
 - [ ] essayer une détection sans hélices ;
 - [ ] noter la version du firmware du Crazyflie testé ;
 - [ ] vérifier la lecture des paramètres (TOC) et l’affichage batterie avec ce firmware — issue `#96` ;
-- [ ] documenter les résultats dans `docs/maintenance/test-baseline.md`.
+- [x] documenter les résultats logiciels dans `docs/maintenance/test-baseline.md` ; les résultats matériels restent à compléter.
 
 ### Commandes
 
@@ -499,6 +508,7 @@ P0 — bloquant pour le BLE.
 
 - [ ] auditer le manifeste ;
 - [ ] conserver les permissions historiques avec `maxSdkVersion="30"` ;
+- [ ] ajouter et demander `ACCESS_FINE_LOCATION` sur Android 10–11 ;
 - [ ] conserver `BLUETOOTH_SCAN` avec `neverForLocation` ;
 - [ ] conserver `BLUETOOTH_CONNECT` ;
 - [ ] supprimer la dépendance au GPS sur Android 12 et versions suivantes ;
@@ -1123,44 +1133,34 @@ Contraintes :
 
 ## 28. Sources techniques
 
-- Dépôt officiel :  
-  https://github.com/bitcraze/crazyflie-android-client
+- [Dépôt officiel](https://github.com/bitcraze/crazyflie-android-client)
 
-- Issue Android 14–15 `#99` :  
-  https://github.com/bitcraze/crazyflie-android-client/issues/99
+- [Issue Android 14–15 `#99`](https://github.com/bitcraze/crazyflie-android-client/issues/99)
 
-- Issue structure des paramètres `#96` :  
-  https://github.com/bitcraze/crazyflie-android-client/issues/96
+- [Issue structure des paramètres `#96`](https://github.com/bitcraze/crazyflie-android-client/issues/96)
 
-- Issue nouvelle API log/param `#86` :  
-  https://github.com/bitcraze/crazyflie-android-client/issues/86
+- [Issue nouvelle API log/param `#86`](https://github.com/bitcraze/crazyflie-android-client/issues/86)
 
-- Issue firmware update cassé `#102` :  
-  https://github.com/bitcraze/crazyflie-android-client/issues/102
+- [Issue firmware update cassé `#102`](https://github.com/bitcraze/crazyflie-android-client/issues/102)
 
-- État des applications mobiles selon Bitcraze :  
-  https://www.bitcraze.io/2025/04/state-of-the-crazyflie-mobile-apps/
+- [État des applications mobiles selon Bitcraze](https://www.bitcraze.io/2025/04/state-of-the-crazyflie-mobile-apps/)
 
-- Consignes de contribution Bitcraze :  
-  https://www.bitcraze.io/development/contribute/  
-  https://www.bitcraze.io/development/contribute/general-guidelines/
+- Consignes de contribution Bitcraze : [vue d'ensemble](https://www.bitcraze.io/development/contribute/) et [règles générales](https://www.bitcraze.io/development/contribute/general-guidelines/)
 
-- Permissions Bluetooth Android :  
-  https://developer.android.com/develop/connectivity/bluetooth/bt-permissions
+- [Permissions Bluetooth Android](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions)
 
-- Exigences Google Play relatives au niveau d’API cible :  
-  https://developer.android.com/google/play/requirements/target-sdk
+- [Exigences Google Play relatives au niveau d’API cible](https://developer.android.com/google/play/requirements/target-sdk)
 
 ---
 
 ## 29. Prochaine action immédiate
 
-État au 11 juillet 2026 : dépôt cloné, `upstream` configuré, plan à la racine, structure `docs/maintenance/` créée, branches `maintenance/docs` et `fix/android-receiver-registration` prêtes.
+État au 11 juillet 2026 : dépôt et fork configurés, remotes `origin` et `upstream` présents, JDK 17 et SDK android-33 installés, baseline logicielle documentée, branches `maintenance/docs`, `fix/android-receiver-registration` et `fix/android-bluetooth-permissions` disponibles localement et sur `origin`.
 
-1. créer le fork GitHub : `gh repo fork bitcraze/crazyflie-android-client --clone=false` ;
-2. déclarer `origin` : `git remote add origin git@github.com:nitram-dldl/crazyflie-android-client.git` ;
-3. pousser : `git push -u origin master maintenance/docs fix/android-receiver-registration` ;
-4. installer le SDK Android et vérifier `java -version` (section 6) ;
-5. lancer la mission de la section 25 (baseline, aucune modification de code) ;
-6. conserver la sortie complète de la première compilation ;
-7. ne pas tester avec les hélices pendant les phases 0 à 3.
+1. finaliser et compiler séparément les deux branches de correctif ;
+2. tester chaque correctif sur un téléphone Android réel après installation propre, sans hélices ;
+3. vérifier le Crazyradio USB sur Android 13 à 16 pour le correctif des récepteurs ;
+4. vérifier les scénarios d'autorisation, refus temporaire et refus définitif pour le correctif Bluetooth ;
+5. préparer ensuite une version d'intégration contenant les deux correctifs, sans fusion automatique ;
+6. créer `safety/disable-mobile-firmware-update` et désactiver effectivement la fonctionnalité cassée ;
+7. conserver les résultats et logs matériels dans `docs/maintenance/`, sans identifiant personnel.
