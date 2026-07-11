@@ -67,7 +67,6 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.util.Log;
@@ -125,8 +124,8 @@ public class MainActivity extends Activity {
     private TextView mTextView_battery;
     private TextView mTextView_linkQuality;
     private MainPresenter mPresenter;
+    private boolean mUsbReceiverRegistered = false;
 
-    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -170,16 +169,30 @@ public class MainActivity extends Activity {
         mHeadlightButton = (ImageButton) findViewById(R.id.button_headLight);
         mBuzzerSoundButton = (ImageButton) findViewById(R.id.button_buzzerSound);
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(this.getPackageName()+".USB_PERMISSION");
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        registerReceiver(mUsbReceiver, filter, RECEIVER_EXPORTED);
-
+        registerUsbReceiver();
 
         initializeSounds();
 
         setCacheDir();
+    }
+
+    private void registerUsbReceiver() {
+        // The USB permission action is private to this app, while attach/detach are
+        // system broadcasts. Android 13+ requires an export flag on dynamic receivers,
+        // so they are registered separately with the appropriate flag.
+        IntentFilter usbPermissionFilter = new IntentFilter(this.getPackageName() + ".USB_PERMISSION");
+        IntentFilter usbEventFilter = new IntentFilter();
+        usbEventFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        usbEventFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(mUsbReceiver, usbPermissionFilter, RECEIVER_NOT_EXPORTED);
+            registerReceiver(mUsbReceiver, usbEventFilter, RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(mUsbReceiver, usbPermissionFilter);
+            registerReceiver(mUsbReceiver, usbEventFilter);
+        }
+        mUsbReceiverRegistered = true;
+        Log.d(LOG_TAG, "USB receiver registered (SDK " + Build.VERSION.SDK_INT + ")");
     }
 
     private void initializeSounds() {
@@ -478,7 +491,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         Log.d(LOG_TAG, "onDestroy()");
-        unregisterReceiver(mUsbReceiver);
+        if (mUsbReceiverRegistered) {
+            unregisterReceiver(mUsbReceiver);
+            mUsbReceiverRegistered = false;
+        }
         mSoundPool.release();
         mSoundPool = null;
         mPresenter.onDestroy();
