@@ -8,9 +8,9 @@ Constats vérifiés sur `master` (commit `d629c79`) et issues amont associées.
 |---|---|---|---|---|---|
 | 1 | `onCreate()` annoté `@RequiresApi(TIRAMISU)` alors que `minSdk 26` | `MainActivity.java:129` | #99 | `fix/android-receiver-registration` | corrigé (`d01c64c`), à tester sur appareil |
 | 2 | `registerReceiver` unique avec `RECEIVER_EXPORTED` mélangeant action privée `USB_PERMISSION` et événements USB système | `MainActivity.java:173-177` | #99 | `fix/android-receiver-registration` | corrigé (`d01c64c`), à tester sur appareil |
-| 3 | Aucun `break` entre les `case` de `onRequestPermissionsResult()` | `MainActivity.java:364-401` | — | `fix/android-bluetooth-permissions` | corrigé (`94dbaa3`), à tester sur appareil |
-| 4 | `checkLocationSettings()` exige le GPS après l'octroi de `BLUETOOTH_CONNECT` sur Android 12+ malgré `neverForLocation` | `MainActivity.java:393, 433` | — | `fix/android-bluetooth-permissions` | corrigé (`94dbaa3`), à tester sur appareil |
-| 4a | `ACCESS_FINE_LOCATION` absente pour les scans BLE Android 10–11 | `AndroidManifest.xml`, `MainActivity.java` | — | `fix/android-bluetooth-permissions` | à corriger |
+| 3 | Aucun `break` entre les `case` de `onRequestPermissionsResult()` | `MainActivity.java:364-401` | — | `fix/android-bluetooth-permissions` | corrigé (`06bee56`), à tester sur appareil |
+| 4 | `checkLocationSettings()` exige le GPS après l'octroi de `BLUETOOTH_CONNECT` sur Android 12+ malgré `neverForLocation` | `MainActivity.java:393, 433` | — | `fix/android-bluetooth-permissions` | corrigé (`06bee56`), à tester sur appareil |
+| 4a | `ACCESS_FINE_LOCATION` absente pour les scans BLE Android 10–11 | `AndroidManifest.xml`, `MainActivity.java` | — | `fix/android-bluetooth-permissions` | corrigé (`06bee56`), à tester sur appareil |
 | 5 | `compileSdk 33` < `targetSdk 34` | `build.gradle` | — | `build/target-api-35` |
 | 6 | Permissions stockage et `DOWNLOAD_WITHOUT_NOTIFICATION` sans `maxSdkVersion` | `AndroidManifest.xml` | — | nettoyage manifeste |
 | 7 | Mise à jour du firmware cassée | `bootloader/` | #102 | `safety/disable-mobile-firmware-update` (à créer) |

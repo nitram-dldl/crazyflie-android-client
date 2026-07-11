@@ -13,7 +13,7 @@ Base amont : `master` de bitcraze/crazyflie-android-client, commit `d629c79` (0.
 ### Corrigé (branches en attente de test sur appareil réel)
 
 - `fix/android-receiver-registration` (commit `d01c64c`) : enregistrement des BroadcastReceiver compatible Android 8–16, récepteur privé USB non exporté, garde-fou sur `unregisterReceiver()`. Compilation validée ; test sur appareil réel requis. Réf. issue #99.
-- `fix/android-bluetooth-permissions` (commit `94dbaa3`) : demande groupée `BLUETOOTH_SCAN`+`BLUETOOTH_CONNECT`, `break` manquants dans `onRequestPermissionsResult()`, suppression de l'exigence GPS sur Android 12+, dialogue d'aide en cas de refus permanent. Compilation validée ; test sur appareil réel requis.
+- `fix/android-bluetooth-permissions` (commit `06bee56`) : demande groupée `BLUETOOTH_SCAN`+`BLUETOOTH_CONNECT`, `break` manquants dans `onRequestPermissionsResult()`, suppression de l'exigence GPS sur Android 12+, dialogue d'aide en cas de refus permanent. Compilation validée ; test sur appareil réel requis.
 
 Ces deux branches sont indépendantes et partent de `master`. Elles ne constituent pas encore une version intégrée contenant les deux correctifs.
 
