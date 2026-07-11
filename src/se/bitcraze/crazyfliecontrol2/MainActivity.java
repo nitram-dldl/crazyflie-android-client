@@ -60,6 +60,7 @@ import android.location.LocationManager;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -91,7 +92,6 @@ public class MainActivity extends Activity {
     private static final String LOG_TAG = "CrazyflieControl";
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 42;
     private static final int MY_PERMISSIONS_REQUEST_BLUETOOTH = 43;
-    private static final int MY_PERMISSIONS_REQUEST_BLUETOOTH_CONNECT = 44;
 
 
     private JoystickView mJoystickViewLeft;
@@ -296,15 +296,16 @@ public class MainActivity extends Activity {
             Toast.makeText(this,  "Device does not support Bluetooth LE. Please use a Crazyradio to connect to the Crazyflie instead.", Toast.LENGTH_LONG).show();
             return;
         }
-        // Since API 31, BLUETOOTH_SCAN permision is required, Location is not anymore
-        if (Build.VERSION.SDK_INT >= 31) {
-            Log.e(LOG_TAG, "Andrdoid verstion >=31 requires BLUETOOTH_SCAN permission for Bluetooth scanning");
-            requestBluetoothScanPermission();
+        // Since API 31, BLUETOOTH_SCAN and BLUETOOTH_CONNECT permissions are required, location is not anymore
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.d(LOG_TAG, "Android version >= 31 requires BLUETOOTH_SCAN and BLUETOOTH_CONNECT permissions for Bluetooth scanning");
+            requestBluetoothPermissions();
         }
-        // Since Android version 6, ACCESS_COARSE_LOCATION is required for Bluetooth scanning
+        // Android 10 and 11 require fine location for BLE scan results. Android 8 and 9 accept coarse location.
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Log.e(LOG_TAG, "Android version >= 6 requires ACCESS_COARSE_LOCATION permissions for Bluetooth scanning.");
-            requestPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, MY_PERMISSIONS_REQUEST_LOCATION);
+            String locationPermission = getLocationPermission();
+            Log.d(LOG_TAG, "Android version <= 30 requires " + locationPermission + " for Bluetooth scanning.");
+            requestRuntimePermission(locationPermission, MY_PERMISSIONS_REQUEST_LOCATION);
         } else {
             connectBle();
         }
@@ -318,7 +319,18 @@ public class MainActivity extends Activity {
 
     private void checkLocationSettings() {
         LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-        boolean isEnabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if (service == null) {
+            Log.e(LOG_TAG, "Location service is unavailable.");
+            Toast.makeText(this, "Location service is unavailable.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        boolean isEnabled;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            isEnabled = service.isLocationEnabled();
+        } else {
+            isEnabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                    || service.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }
         if (!isEnabled) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Location Access");
@@ -343,20 +355,20 @@ public class MainActivity extends Activity {
 
     }
 
-    private void requestPermissions(String permission, int request) {
+    private static String getLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return Manifest.permission.ACCESS_FINE_LOCATION;
+        }
+        return Manifest.permission.ACCESS_COARSE_LOCATION;
+    }
+
+    private void requestRuntimePermission(String permission, int request) {
         if (ContextCompat.checkSelfPermission(MainActivity.this, permission) != PackageManager.PERMISSION_GRANTED) {
-            // Permission is not granted. Should we show an explanation?
             if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, permission)) {
-                // Show an explanation to the user *asynchronously* -- don't block this thread waiting for the user's response!
-                // After the user sees the explanation, try again to request the permission.
-                Log.d(LOG_TAG, "ACCESS_COARSE_LOCATION permission request has been denied.");
-                //Toast.makeText(this,  "Android version >= 6 requires ACCESS_COARSE_LOCATION permissions for Bluetooth scanning.", Toast.LENGTH_LONG).show();
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{permission}, request);
-            } else {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{permission}, request);
+                Toast.makeText(this, "Location permission is required for Bluetooth scanning on this Android version.", Toast.LENGTH_LONG).show();
             }
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{permission}, request);
         } else {
-            // Permission has already been granted
             checkLocationSettings();
         }
     }
@@ -364,73 +376,95 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay! Do the contacts-related task you need to do.
+            case MY_PERMISSIONS_REQUEST_LOCATION:
+                if (grantResults.length == 0 || permissions.length == 0) {
+                    Log.d(LOG_TAG, "Location permission request was cancelled.");
+                    Toast.makeText(this, "Location permission request was cancelled.", Toast.LENGTH_LONG).show();
+                } else if (allGranted(grantResults)) {
                     checkLocationSettings();
                 } else {
-                    // permission denied, boo! Disable the functionality that depends on this permission.
-                    Log.d(LOG_TAG, "ACCESS_COARSE_LOCATION permission request has been denied.");
-                    Toast.makeText(this,  "Android version >= 6 requires ACCESS_COARSE_LOCATION permissions for Bluetooth scanning.", Toast.LENGTH_LONG).show();
+                    Log.d(LOG_TAG, "Location permission request has been denied.");
+                    showPermissionHelp(
+                            "Location permission",
+                            "Location permission is required for Bluetooth scanning on this Android version.",
+                            permissions,
+                            grantResults);
                 }
-            }
-            case MY_PERMISSIONS_REQUEST_BLUETOOTH: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay! Do the contacts-related task you need to do.
-                    requestBluetoothConnectPermission();
+                break;
+            case MY_PERMISSIONS_REQUEST_BLUETOOTH:
+                if (grantResults.length == 0 || permissions.length == 0) {
+                    Log.d(LOG_TAG, "Bluetooth permission request was cancelled.");
+                    Toast.makeText(this, "Bluetooth permission request was cancelled.", Toast.LENGTH_LONG).show();
+                } else if (allGranted(grantResults)) {
+                    // Location services are not required for BLE scanning since Android 12
+                    connectBle();
                 } else {
-                    // permission denied, boo! Disable the functionality that depends on this permission.
-                    Log.d(LOG_TAG, "BLUETOOTH_SCAN permission request has been denied.");
-                    Toast.makeText(this,  "Android version >= 31 requires BLUETOOTH_SCAN permissions for Bluetooth scanning.", Toast.LENGTH_LONG).show();
+                    Log.d(LOG_TAG, "BLUETOOTH_SCAN/BLUETOOTH_CONNECT permission request has been denied.");
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        showPermissionHelp(
+                                "Bluetooth permissions",
+                                "Bluetooth permissions are required to find and connect to the Crazyflie.",
+                                permissions,
+                                grantResults);
+                    }
                 }
-            }
-            case MY_PERMISSIONS_REQUEST_BLUETOOTH_CONNECT: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay! Do the contacts-related task you need to do.
-                    checkLocationSettings();
-                } else {
-                    // permission denied, boo! Disable the functionality that depends on this permission.
-                    Log.d(LOG_TAG, "BLUETOOTH_CONNECT permission request has been denied.");
-                    Toast.makeText(this,  "Android version >= 31 requires BLUETOOTH_CONNECT permissions for Bluetooth scanning.", Toast.LENGTH_LONG).show();
-                }
-            }
+                break;
+            default:
+                break;
         }
     }
 
-    private void requestBluetoothScanPermission() {
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_SCAN ) != PackageManager.PERMISSION_GRANTED) {
-            // Permission is not granted. Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.BLUETOOTH_SCAN)) {
-                // Show an explanation to the user *asynchronously* -- don't block this thread waiting for the user's response!
-                // After the user sees the explanation, try again to request the permission.
-                Log.d(LOG_TAG, "BLUETOOTH_SCAN permission request has been denied.");
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH_SCAN}, MY_PERMISSIONS_REQUEST_BLUETOOTH);
-            } else {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH_SCAN}, MY_PERMISSIONS_REQUEST_BLUETOOTH);
+    private static boolean allGranted(int[] grantResults) {
+        for (int grantResult : grantResults) {
+            if (grantResult != PackageManager.PERMISSION_GRANTED) {
+                return false;
             }
+        }
+        return true;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private void requestBluetoothPermissions() {
+        String[] permissions = new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT};
+        boolean allPermissionsGranted = true;
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(MainActivity.this, permission) != PackageManager.PERMISSION_GRANTED) {
+                allPermissionsGranted = false;
+                break;
+            }
+        }
+        if (allPermissionsGranted) {
+            connectBle();
         } else {
-            // Permission has already been granted
-            requestBluetoothConnectPermission();
+            ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSIONS_REQUEST_BLUETOOTH);
         }
     }
 
-    private void requestBluetoothConnectPermission() {
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT ) != PackageManager.PERMISSION_GRANTED) {
-            // Permission is not granted. Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)) {
-                // Show an explanation to the user *asynchronously* -- don't block this thread waiting for the user's response!
-                // After the user sees the explanation, try again to request the permission.
-                Log.d(LOG_TAG, "BLUETOOTH_SCAN permission request has been denied.");
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, MY_PERMISSIONS_REQUEST_BLUETOOTH_CONNECT);
-            } else {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, MY_PERMISSIONS_REQUEST_BLUETOOTH_CONNECT);
+    private void showPermissionHelp(String title, String message, String[] permissions, int[] grantResults) {
+        boolean permanentlyDenied = false;
+        int resultCount = Math.min(permissions.length, grantResults.length);
+        for (int i = 0; i < resultCount; i++) {
+            if (grantResults[i] != PackageManager.PERMISSION_GRANTED
+                    && !ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, permissions[i])) {
+                permanentlyDenied = true;
+                break;
             }
+        }
+        if (permanentlyDenied) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle(title);
+            builder.setMessage(message + " Please allow it in the app settings.");
+            builder.setPositiveButton("Open settings", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getPackageName(), null));
+                    startActivity(intent);
+                }
+            });
+            builder.setNegativeButton(android.R.string.cancel, null);
+            builder.show();
         } else {
-            // Permission has already been granted
-            checkLocationSettings();
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         }
     }
 
